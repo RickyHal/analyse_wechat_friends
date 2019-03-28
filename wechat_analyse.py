@@ -18,6 +18,7 @@ class Analyse(object):
         self.break_words = []
         self.uuid = uuid
 
+    # 生成男女性别比例图
     def friends_sex_ratio(self):
         sex = ['未知', '男', '女']
         ratio = [0, 0, 0]
@@ -38,9 +39,11 @@ class Analyse(object):
         )
         pie.render('./html/%s_sex_ratio.html' % self.uuid)
         pie.render(path='./img/%s_sex_ratio.png' % self.uuid)
+        # 通过文件传输助手发送到自己微信中
         itchat.send_image('./img/%s_sex_ratio.png' %
                           self.uuid, 'filehelper')
 
+    # 生成好友地图分布图和热力图
     def friends_map(self):
         citys = []
         values = []
@@ -80,13 +83,14 @@ class Analyse(object):
             itchat.send_image('./img/%s_frends_city_%s.png' %
                               (self.uuid, item), 'filehelper')
 
+    # 判断是否是中文
     def is_chinese(self, words):
         for word in words:
             if not(u'\u4e00' <= word <= u'\u9fa5'):
                 return False
         return True
-    # 获取停用词
 
+    # 获取停用词
     def get_break_stopWords(self):
         with open(self.break_words_file, 'r', encoding='UTF-8-sig') as f:
             for line in f:
@@ -99,11 +103,13 @@ class Analyse(object):
             if self.is_chinese(word):
                 return word
 
+    # 生成好友签名词云
     def signature_cloud(self):
         words = []
         count = []
         # 获取停用词
         self.get_break_stopWords()
+        # 清洗、统计数据
         for item in self.friends:
             for word in jieba.lcut(item['Signature']):
                 if word not in words and self.is_chinese(word):
@@ -120,6 +126,7 @@ class Analyse(object):
         itchat.send_image('./img/%s_signature_word_cloud.png' %
                           self.uuid, 'filehelper')
 
+    # 将所有好友的头像拼成一张图
     def head_img_cloud(self):
         num = 1
         for item in self.friends:
@@ -130,20 +137,24 @@ class Analyse(object):
             f.close()
             num += 1
         print('开始生成图云...')
-        each_size = int(math.sqrt(float(810 * 810) / (num - 1)))
-        lines = int(810 / each_size)
+        each_size = int(math.sqrt(float(640 * 640) / len(self.friends)))
+        lines = int(640 / each_size)
         # 生成白色背景新图片
-        image = Image.new('RGBA', (810, 810), 'white')
+        image = Image.new('RGBA', (640, 640), 'white')
+        # 拼接好友头像
         x = 0
         y = 0
-        for i in range(1, num):
+        for i in range(1, len(self.friends)):
             try:
+                # 读取头像文件
                 img = Image.open('./head_img/%s_head_img-%d.jpg' %
                                  (self.uuid, i))
             except Exception as e:
                 print(e)
             else:
+                # 设置头像图片尺寸
                 img = img.resize((each_size, each_size), Image.ANTIALIAS)
+                # 粘贴好友头像到指定的位置
                 image.paste(img, (x * each_size, y * each_size))
                 x += 1
                 if x == lines:
@@ -151,7 +162,6 @@ class Analyse(object):
                     y += 1
         image.save("./img/%s_all_head_img.png" % self.uuid)
         print('生成完成')
-        # 通过文件传输助手发送到自己微信中
         itchat.send_image("./img/%s_all_head_img.png" %
                           self.uuid, 'filehelper')
 
@@ -160,7 +170,7 @@ if __name__ == "__main__":
     itchat.auto_login(hotReload=True)
     friends = itchat.get_friends(update=True)
     analyse = Analyse(friends, itchat.get_QRuuid())
-    analyse.friends_sex_ratio()
-    analyse.friends_map()
+    # analyse.friends_sex_ratio()
+    # analyse.friends_map()
     analyse.signature_cloud()
-    analyse.head_img_cloud()
+    # analyse.head_img_cloud()
